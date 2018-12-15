@@ -1,0 +1,70 @@
+---
+kind: pipeline
+name: commitlint
+steps:
+  - name: npm install
+    image: &node_image node:10.14.1-alpine
+    commands:
+      - npm i
+  - name: tag/commitlint
+    image: *node_image
+    commands:
+      - npx commitlint --from HEAD~1 --to HEAD
+    when:
+      event:
+        - tag
+        - push
+  - name: pr/commitlint
+    image: *node_image
+    commands:
+      - npx commitlint --from master --to HEAD || exit 1
+    when:
+      event:
+        - pull_request
+---
+kind: pipeline
+name: build
+workspace:
+  base: /go
+  path: src/github.com/suzuki-shunsuke/go-errctx
+steps:
+  - name: dep-dl
+    image: suzukishunsuke/dep-dl:0.1.0
+    commands:
+      - dep-dl
+  - name: durl
+    image: quay.io/suzuki_shunsuke/durl:0.1.1
+    commands:
+      - sh scripts/durl.sh
+  - name: go vet
+    # exec: "gcc": executable file not found in $PATH
+    # gcc is required
+    image: golang:1.11.2
+    commands:
+      - go vet ./...
+  - name: gometalinter
+    image: suzukishunsuke/go-ci:1.0.0
+    commands:
+      - gometalinter ./...
+  - name: go test
+    image: golang:1.11.2
+    commands:
+      # gcc seems to be required
+      # runtime/cgo
+      # exec: "gcc": executable file not found in $PATH
+      - go test -race -covermode=atomic ./...
+    when:
+      event:
+        - pull_request
+  - name: codecov
+    image: golang:1.11.2
+    commands:
+      # bash and cgo seem to be required
+      - bash scripts/codecov-test.sh
+    environment:
+      CODECOV_TOKEN:
+        from_secret: codecov_token
+    when:
+      event:
+        - push
+        - tag
