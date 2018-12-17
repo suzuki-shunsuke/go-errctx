@@ -33,6 +33,12 @@ func TestWrap(t *testing.T) {
 	}
 }
 
+func TestWrapf(t *testing.T) {
+	e := Wrapf(fmt.Errorf("foo"), nil, "failed to %s", "get users")
+	e2 := Wrap(fmt.Errorf("foo"), nil, fmt.Sprintf("failed to %s", "get users"))
+	require.Equal(t, e, e2)
+}
+
 func TestErrorCause(t *testing.T) {
 	msg := "foo"
 	err := Error{err: fmt.Errorf(msg)}
