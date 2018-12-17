@@ -39,6 +39,11 @@ func Wrap(err error, fields Fields, msgs ...string) Error {
 	return Error{err: err, msgs: msgs, fields: fields}
 }
 
+// Wrapf is a shordhand of combination of Wrap and fmt.Sprintf .
+func Wrapf(err error, fields Fields, msg string, a ...interface{}) Error {
+	return Wrap(err, fields, fmt.Sprintf(msg, a...))
+}
+
 // Cause returns a base error.
 func (e Error) Cause() error {
 	return e.err
